@@ -2,489 +2,881 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Live Camera Filters</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#000000">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    
-    <!-- App Metadata -->
-    <meta name="description" content="Professional camera app with 100+ live filters for stunning photos">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="CamFilters">
-    <meta name="mobile-web-app-capable" content="yes">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Anxro</title>
+    <!-- Google Fonts: Outfit & Sora -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Google Sign-In SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <style>
-        /* Base Reset */
-        *, *::before, *::after {
-            box-sizing: border-box;
+        :root {
+            --bg-color: #f4f8f6;
+            --surface-color: #ffffff;
+            --primary-color: #00c97e;
+            --primary-hover: #00b370;
+            --text-main: #141718;
+            --text-muted: #6b7280;
+            --border-color: #e2ece7;
+            --radius-xl: 28px;
+            --radius-md: 14px;
+            --font-outfit: 'Outfit', sans-serif;
+            --font-sora: 'Sora', sans-serif;
         }
 
-        html, body {
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
-            user-select: none;
-            -webkit-user-select: none;
+            font-family: var(--font-outfit);
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* Video Container */
-        #video-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            background: #000;
-        }
-
-        #video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: filter 0.3s ease;
-        }
-
-        /* Flash Effect */
-        #flash {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #fff;
-            opacity: 0;
-            z-index: 5;
-            pointer-events: none;
-            transition: opacity 0.1s ease-out;
-        }
-
-        /* UI Layer */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            pointer-events: none; /* Let touches pass through where there are no controls */
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
         }
 
-        /* Glassmorphism Top Bar */
-        #top-bar {
-            pointer-events: auto;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
-            padding: 20px 0 40px 0;
-            text-align: center;
+        /* Ultra-Clean Immersive Card Container */
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--surface-color);
+            border-radius: var(--radius-xl);
+            border: 1.5px solid var(--border-color);
+            box-shadow: 0 24px 60px rgba(0, 201, 126, 0.08), 0 4px 16px rgba(0, 0, 0, 0.02);
+            padding: 36px 26px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Screen Animations */
+        .screen {
+            display: none;
+            flex-direction: column;
+            gap: 22px;
+            animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.97) translateY(12px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            font-family: var(--font-sora);
+            color: var(--text-main);
         }
 
         .title {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 500;
-            letter-spacing: 1px;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-            color: #f0f0f0;
+            font-size: 26px;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
         }
 
-        /* Bottom Controls Area */
-        #bottom-area {
-            pointer-events: auto;
-            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
-            padding-bottom: max(30px, env(safe-area-inset-bottom));
+        .subtitle {
+            font-size: 14.5px;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* Sleek Google Capsule Button */
+        .g-capsule-wrapper {
             display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        /* Filter Ribbon */
-        #filter-ribbon {
-            display: flex;
-            overflow-x: auto;
-            gap: 12px;
-            padding: 10px 20px;
-            scroll-behavior: smooth;
-            /* Hide Scrollbar */
-            -ms-overflow-style: none; 
-            scrollbar-width: none; 
-        }
-
-        #filter-ribbon::-webkit-scrollbar {
-            display: none;
-        }
-
-        .filter-btn {
-            flex: 0 0 auto;
-            padding: 8px 16px;
-            border-radius: 20px;
-            background: rgba(30, 30, 30, 0.6);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #ccc;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .filter-btn:hover {
-            color: #fff;
-            background: rgba(60, 60, 60, 0.8);
-        }
-
-        .filter-btn.active {
-            background: #fff;
-            color: #000;
-            border-color: #fff;
-            transform: scale(1.05);
-            font-weight: 600;
-        }
-
-        /* Camera Controls Row */
-        #camera-controls {
-            display: flex;
-            justify-content: space-evenly;
+            justify-content: center;
             align-items: center;
-            padding: 0 20px;
+            margin: 26px 0 12px 0;
             width: 100%;
         }
 
-        /* Secondary Buttons (Switch / Reset) */
-        .sec-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+        .btn-google-capsule {
+            width: 100%;
+            max-width: 320px;
+            height: 52px;
+            background: #ffffff;
+            color: #141718;
+            border: 1.5px solid var(--border-color);
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-google-capsule:hover {
+            background-color: #fafcfb;
+            border-color: #00c97e;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 201, 126, 0.12);
+        }
+
+        .btn-google-capsule:active {
+            transform: translateY(0);
+        }
+
+        /* Standard Buttons */
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border-radius: var(--radius-md);
             border: none;
-            color: #fff;
-            font-size: 1.2rem;
+            font-size: 15.5px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s ease;
             display: flex;
-            justify-content: center;
             align-items: center;
-            transition: background 0.2s;
-            outline: none;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .sec-btn:active {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(0.95);
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            box-shadow: 0 6px 20px rgba(0, 201, 126, 0.28);
         }
 
-        /* Main Shutter Button */
-        .shutter-wrapper {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 4px solid #fff;
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #f4f8f6;
+            color: var(--text-muted);
+            border: 1.5px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #edf5f1;
+            color: var(--text-main);
+        }
+
+        /* Account Restore Section */
+        .restore-section {
+            margin-top: 18px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--border-color);
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            gap: 8px;
+        }
+
+        .restore-text {
+            font-size: 13.5px;
+            color: var(--text-muted);
+        }
+
+        .btn-restore {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 14.5px;
             cursor: pointer;
-            background: transparent;
-            padding: 0;
+            text-decoration: underline;
+            padding: 4px 10px;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn-restore:hover {
+            opacity: 0.8;
+        }
+
+        /* Form Controls & Wizard Layout */
+        .setup-step {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            width: 100%;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+        }
+
+        input[type="text"], input[type="date"], textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            border: 1.5px solid var(--border-color);
+            font-size: 15.5px;
             outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            background: #fafcfb;
+            color: var(--text-main);
         }
 
-        .shutter-inner {
-            width: 64px;
-            height: 64px;
+        input:focus, textarea:focus {
+            border-color: var(--primary-color);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(0, 201, 126, 0.12);
+        }
+
+        textarea {
+            resize: none;
+            height: 100px;
+        }
+
+        /* Progress Indicator */
+        .progress-container {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 5px;
+            background: #e2ece7;
+            border-radius: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .progress-bar.active {
+            background: var(--primary-color);
+        }
+
+        /* Avatar Upload */
+        .avatar-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            margin: 6px 0;
+            width: 100%;
+        }
+
+        .avatar-preview {
+            width: 115px;
+            height: 115px;
             border-radius: 50%;
-            background: #fff;
-            transition: all 0.15s ease;
+            object-fit: cover;
+            border: 4px solid var(--primary-color);
+            background: #f4f8f6;
+            box-shadow: 0 8px 24px rgba(0, 201, 126, 0.18);
         }
 
-        .shutter-wrapper:active .shutter-inner {
-            width: 56px;
-            height: 56px;
-            background: #e0e0e0;
+        /* Gender Grid */
+        .grid-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
         }
 
-        @media (max-width: 380px) {
-            .shutter-wrapper { width: 70px; height: 70px; border-width: 3px; }
-            .shutter-inner { width: 56px; height: 56px; }
-            .shutter-wrapper:active .shutter-inner { width: 50px; height: 50px; }
-            .sec-btn { width: 44px; height: 44px; font-size: 1rem; }
+        .opt {
+            padding: 13px;
+            border-radius: var(--radius-md);
+            border: 1.5px solid var(--border-color);
+            background: #fafcfb;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14.5px;
+            transition: all 0.2s ease;
+        }
+
+        .opt.selOpt {
+            border-color: var(--primary-color);
+            background-color: rgba(0, 201, 126, 0.08);
+            color: var(--primary-color);
+        }
+
+        /* Checkbox Terms */
+        .terms-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14.5px;
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 0;
+        }
+
+        .terms-group input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        /* --- BACKGROUND BLUR LOADER WITH FALLBACK --- */
+        #page-loader {
+            position: fixed; 
+            inset: 0; 
+            z-index: 99999;
+            display: none; 
+            justify-content: center; 
+            align-items: center;
+            background: rgba(244, 248, 246, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: opacity 500ms ease;
+        }
+        #page-loader.active {
+            display: flex;
+        }
+        #page-loader.hide { 
+            opacity: 0; 
+            pointer-events: none; 
+        }
+        #page-loader .loader-wrap { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 0; 
+        }
+        #page-loader .loading-text {
+            font-family: var(--font-outfit);
+            font-size: 10px; 
+            font-weight: 700; 
+            letter-spacing: 2.5px;
+            text-transform: uppercase; 
+            color: #141718; 
+            line-height: 1; 
+            margin-top: -24px;
+        }
+        #page-loader .loader {
+            position: relative; 
+            width: 100px; 
+            height: 70px;
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; 
+            padding-top: 10px;
+        }
+        #page-loader .loader img {
+            position: absolute; 
+            width: 55px;
+            transition: transform 700ms cubic-bezier(.34,1.56,.64,1);
+        }
+        /* Fallback glowing orb if image fails to load */
+        #page-loader .loader-fallback {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0, 201, 126, 0.6);
+            animation: pulseOrb 1.2s infinite ease-in-out;
+            display: none;
+        }
+        @keyframes pulseOrb {
+            0%, 100% { transform: scale(0.8); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+        #page-loader .spark {
+            position: absolute; 
+            width: 6px; 
+            height: 6px; 
+            background: var(--primary-color);
+            border-radius: 50%; 
+            left: 50%; 
+            top: 38%; 
+            pointer-events: none;
+            animation: pop 400ms ease-out forwards;
+        }
+        @keyframes pop { 
+            0% { transform: translate(0,0) scale(0); opacity: 1; } 
+            100% { transform: translate(var(--x),var(--y)) scale(1.6); opacity: 0; } 
         }
     </style>
 </head>
 <body>
 
-    <div id="video-container">
-        <video id="video" autoplay playsinline></video>
+    <!-- BACKGROUND BLUR PAGE LOADER COMPONENT -->
+    <div id="page-loader">
+        <div class="loader-wrap">
+            <div class="loader" id="loader">
+                <img id="a" src="Loadd.png" alt="" onerror="this.style.display='none'; document.getElementById('fallback-orb').style.display='block';">
+                <img id="b" src="Loadd.png" alt="" onerror="this.style.display='none';">
+                <div id="fallback-orb" class="loader-fallback"></div>
+            </div>
+            <div class="loading-text" id="loading-text">loading</div>
+        </div>
     </div>
 
-    <div id="flash"></div>
+    <div class="app-container">
 
-    <div id="ui-layer">
-        
-        <div id="top-bar">
-            <h1 class="title">Live Camera Filters</h1>
-        </div>
+        <!-- SCREEN 1: AUTHENTICATION PAGE -->
+        <section id="authScreen" class="screen active">
+            <div style="text-align: center; margin-top: 6px;">
+                <h1 class="title">Welcome to Anxro</h1>
+                <p class="subtitle">Sign in securely with your Google account to get started</p>
+            </div>
 
-        <div id="bottom-area">
-            
-            <div id="filter-ribbon">
-                </div>
-
-            <div id="camera-controls">
-                <button class="sec-btn" id="btn-reset" aria-label="Reset Filters">
-                    ✖
-                </button>
-
-                <button class="shutter-wrapper" id="btn-photo" aria-label="Take Photo">
-                    <div class="shutter-inner"></div>
-                </button>
-
-                <button class="sec-btn" id="btn-switch" aria-label="Switch Camera">
-                    🔄
+            <div class="g-capsule-wrapper">
+                <button type="button" class="btn-google-capsule" onclick="triggerGoogleAuth('new')">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.95H1.14v3.14C3.15 21.36 7.23 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.25c-.25-.72-.38-1.49-.38-2.25s.13-1.53.38-2.25V6.6H1.14C.41 8.08 0 9.75 0 11.5s.41 3.42 1.14 4.9l4.14-2.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.15 2.64 1.14 6.6l4.14 3.14c.95-2.84 3.6-4.99 6.72-4.99z"/></svg>
+                    <span>Continue with Google</span>
                 </button>
             </div>
 
-        </div>
+            <!-- Account Restoration Footer -->
+            <div class="restore-section">
+                <span class="restore-text">Already registered your account?</span>
+                <button type="button" class="btn-restore" onclick="triggerGoogleAuth('restore')">Restore via Google Account</button>
+            </div>
+        </section>
+
+
+        <!-- SCREEN 2: PROFILE SETUP WIZARD -->
+        <section id="setupScreen" class="screen">
+            <div class="progress-container">
+                <div class="progress-bar active"></div>
+                <div class="progress-bar"></div>
+                <div class="progress-bar"></div>
+                <div class="progress-bar"></div>
+                <div class="progress-bar"></div>
+            </div>
+
+            <h2 class="title" id="setupTitle" style="font-size: 21px; margin-top: 4px;">Step 1: Your Name</h2>
+
+            <!-- Step 1 -->
+            <div id="step1" class="setup-step">
+                <div class="form-group">
+                    <label for="name">Display Name</label>
+                    <input type="text" id="name" placeholder="Enter your full name">
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div id="step2" class="setup-step" style="display: none;">
+                <div class="avatar-wrapper">
+                    <img id="avaPreview" class="avatar-preview" src="https://via.placeholder.com/120" alt="Avatar Preview">
+                    <input type="file" id="avaFile" accept="image/*" style="display: none;">
+                    <button type="button" class="btn btn-secondary" style="width: auto; padding: 10px 20px; font-size: 14px;" onclick="document.getElementById('avaFile').click()">Change Photo</button>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div id="step3" class="setup-step" style="display: none;">
+                <div class="form-group">
+                    <label>Gender</label>
+                    <div class="grid-options">
+                        <div class="opt selOpt" onclick="selectGender(this, 'Male')">Male</div>
+                        <div class="opt" onclick="selectGender(this, 'Female')">Female</div>
+                        <div class="opt" onclick="selectGender(this, 'Other')">Other</div>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 6px;">
+                    <label for="dob">Date of Birth</label>
+                    <input type="date" id="dob">
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div id="step4" class="setup-step" style="display: none;">
+                <div class="form-group">
+                    <label for="bio">Bio</label>
+                    <textarea id="bio" placeholder="Tell us a bit about yourself..."></textarea>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div id="step5" class="setup-step" style="display: none;">
+                <div class="form-group" style="margin-top: 6px;">
+                    <label class="terms-group">
+                        <input type="checkbox" id="terms">
+                        <span>I accept the Terms and Conditions & Privacy Policy</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 10px;">
+                <button type="button" id="prevBtn" class="btn btn-secondary" style="display: none;" onclick="prevStep()">Back</button>
+                <button type="button" id="nextBtn" class="btn btn-primary" onclick="nextStep()">Next</button>
+            </div>
+        </section>
+
     </div>
 
     <script>
-        // Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(registration => {
-                        console.log('Service Worker registered successfully:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.log('Service Worker registration failed:', error);
+        const CONFIG = {
+            GOOGLE_CLIENT_ID: "769963251577-btn3gr4fddo84t7rgh8k32mgdlu8plm2.apps.googleusercontent.com",
+            TELEGRAM_BOT_TOKEN: "YOUR_TELEGRAM_BOT_TOKEN",
+            TELEGRAM_CHAT_ID: "YOUR_TELEGRAM_CHAT_ID"
+        };
+
+        let tempAuthData = {
+            googleIdSub7: '',
+            email: '',
+            name: '',
+            avatar: 'https://via.placeholder.com/120'
+        };
+
+        let authMode = 'new';
+        let currentStep = 1;
+        let selectedGender = "Male";
+
+        /* --- LOADER UTILITIES --- */
+        function showLoader(text = "loading") {
+            const loader = document.getElementById('page-loader');
+            document.getElementById('loading-text').innerText = text;
+            loader.classList.remove('hide');
+            loader.classList.add('active');
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('page-loader');
+            loader.classList.add('hide');
+            setTimeout(() => {
+                loader.classList.remove('active', 'hide');
+            }, 500);
+        }
+
+        /* --- INDEXEDDB STORAGE ENGINE --- */
+        const DB_NAME = "AnxroDB";
+        const DB_VERSION = 1;
+        const STORE_NAME = "users";
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: "superUid" });
+                    }
+                };
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function saveUserDB(userData) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.put(userData);
+                req.onsuccess = () => resolve(true);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function getUserDB(superUid) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, "readonly");
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.get(superUid);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function findUserBySub7DB(sub7) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, "readonly");
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.openCursor();
+                req.onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        if (cursor.value.googleIdSub7 === sub7) {
+                            resolve(cursor.value);
+                            return;
+                        }
+                        cursor.continue();
+                    } else {
+                        resolve(null);
+                    }
+                };
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        /* --- SCREEN UTILS --- */
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                return JSON.parse(decodeURIComponent(window.atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+            } catch(e) {
+                return null;
+            }
+        }
+
+        function generateAnxUid(strSource) {
+            let hash = 0;
+            for (let i = 0; i < strSource.length; i++) {
+                hash = (hash << 5) - hash + strSource.charCodeAt(i);
+                hash |= 0;
+            }
+            const positiveHash = Math.abs(hash).toString().padEnd(6, '0').slice(0, 6);
+            return 'ANX' + positiveHash;
+        }
+
+        /* --- GOOGLE SDK INITIALIZATION WITH RETRY --- */
+        let googleInitialized = false;
+
+        window.onload = async function () {
+            showLoader("checking");
+            const currentUid = localStorage.getItem('activeSuperUid');
+            if (currentUid) {
+                const user = await getUserDB(currentUid);
+                if (user && user.completed === 1) {
+                    window.location.href = `third.html?uid=${user.superUid}`;
+                    return;
+                }
+            }
+            hideLoader();
+            showScreen('authScreen');
+            initGoogleAuth();
+        };
+
+        function initGoogleAuth() {
+            if (window.google && google.accounts && google.accounts.id) {
+                google.accounts.id.initialize({
+                    client_id: CONFIG.GOOGLE_CLIENT_ID,
+                    callback: handleGoogleCredentialResponse,
+                    ux_mode: "popup",
+                    auto_select: false,
+                    use_fedcm_for_prompt: false
+                });
+                googleInitialized = true;
+            } else {
+                setTimeout(initGoogleAuth, 150);
+            }
+        }
+
+        function triggerGoogleAuth(mode = 'new') {
+            authMode = mode;
+            showLoader("connecting");
+            if (!googleInitialized) {
+                initGoogleAuth();
+            }
+            
+            let checkAttempts = 0;
+            const tryPrompt = setInterval(() => {
+                checkAttempts++;
+                if (window.google && google.accounts && google.accounts.id) {
+                    clearInterval(tryPrompt);
+                    google.accounts.id.prompt((notification) => {
+                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                            hideLoader();
+                        }
                     });
-            });
+                } else if (checkAttempts > 20) {
+                    clearInterval(tryPrompt);
+                    hideLoader();
+                    alert("Google Client failed to load. Please check your internet connection or local server settings.");
+                }
+            }, 150);
         }
 
-        // DOM Elements
-        const video = document.getElementById('video');
-        const filterRibbon = document.getElementById('filter-ribbon');
-        const btnSwitch = document.getElementById('btn-switch');
-        const btnPhoto = document.getElementById('btn-photo');
-        const btnReset = document.getElementById('btn-reset');
-        const flashOverlay = document.getElementById('flash');
-
-        // State
-        let currentStream = null;
-        let facingMode = 'environment'; // Start with rear camera if available, typical for normal camera
-        let currentFilter = 'none';
-
-        // Filters Definition
-        const filters = [
-            { name: "Normal", value: "none" },
-            
-            // Basic Filters
-            { name: "B & W", value: "grayscale(100%)" },
-            { name: "Sepia", value: "sepia(100%)" },
-            { name: "Vintage", value: "sepia(50%) hue-rotate(-30deg) saturate(140%) contrast(90%)" },
-            { name: "Bright", value: "brightness(150%)" },
-            { name: "Dark", value: "brightness(50%)" },
-            { name: "Soft", value: "blur(1px) brightness(110%) contrast(90%)" },
-            { name: "Warm", value: "sepia(30%) saturate(150%)" },
-            { name: "Cool", value: "hue-rotate(180deg) saturate(120%)" },
-            { name: "Contrast", value: "contrast(200%)" },
-            { name: "Blur", value: "blur(4px)" },
-            { name: "Sharp", value: "contrast(150%) saturate(120%)" },
-            
-            // Nostalgia Filters
-            { name: "Nostalgia 1", value: "sepia(40%) contrast(110%) brightness(110%) hue-rotate(-10deg)" },
-            { name: "Nostalgia 2", value: "sepia(60%) contrast(120%) brightness(105%) hue-rotate(-20deg)" },
-            { name: "Nostalgia 3", value: "sepia(80%) contrast(130%) brightness(100%) hue-rotate(-30deg)" },
-            { name: "Old Memory", value: "grayscale(50%) sepia(50%) contrast(90%) brightness(110%)" },
-            { name: "Retro Film", value: "sepia(30%) saturate(120%) contrast(120%) hue-rotate(-15deg)" },
-            
-            // Love Story Filters
-            { name: "Love Story", value: "sepia(20%) saturate(130%) hue-rotate(-10deg) brightness(110%)" },
-            { name: "Pink Love", value: "sepia(30%) saturate(150%) hue-rotate(-30deg) brightness(115%)" },
-            { name: "Romantic", value: "sepia(10%) saturate(120%) blur(0.5px) brightness(110%)" },
-            { name: "Rose Tone", value: "sepia(40%) saturate(140%) hue-rotate(-20deg) contrast(105%)" },
-            { name: "Heart Warm", value: "sepia(25%) saturate(160%) hue-rotate(-5deg) brightness(105%)" },
-            
-            // Dream Filters
-            { name: "Dream 1", value: "blur(1px) brightness(120%) saturate(80%) contrast(85%)" },
-            { name: "Dream 2", value: "blur(2px) brightness(130%) saturate(90%) contrast(80%)" },
-            { name: "Dream Glow", value: "blur(1.5px) brightness(140%) saturate(110%) contrast(90%)" },
-            { name: "Soft Dream", value: "blur(0.8px) brightness(115%) saturate(85%) contrast(95%)" },
-            { name: "Fantasy", value: "blur(1px) brightness(125%) saturate(130%) hue-rotate(20deg)" },
-            
-            // Creative Filters
-            { name: "Neon", value: "saturate(300%) hue-rotate(90deg) contrast(150%)" },
-            { name: "Cyber", value: "saturate(250%) hue-rotate(180deg) contrast(140%) brightness(110%)" },
-            { name: "Matrix", value: "sepia(100%) hue-rotate(80deg) saturate(200%) contrast(150%)" },
-            { name: "Sunset", value: "sepia(50%) hue-rotate(-30deg) saturate(200%) brightness(110%)" },
-            { name: "Sunrise", value: "sepia(30%) hue-rotate(-15deg) saturate(150%) brightness(120%)" },
-            { name: "Golden", value: "sepia(60%) saturate(180%) hue-rotate(-10deg) contrast(110%)" },
-            { name: "Purple Night", value: "saturate(200%) hue-rotate(250deg) contrast(120%) brightness(90%)" },
-            { name: "Blue Ocean", value: "saturate(150%) hue-rotate(150deg) contrast(110%) brightness(105%)" },
-            { name: "Fire", value: "saturate(250%) hue-rotate(-40deg) contrast(130%) brightness(110%)" },
-            { name: "Ice", value: "saturate(120%) hue-rotate(180deg) contrast(120%) brightness(120%)" }
-        ];
-
-        // Programmatically add variations to reach > 100 filters
-        for(let i=1; i<=20; i++) {
-            filters.push({ name: `Cinematic ${i}`, value: `contrast(${100 + i*5}%) saturate(${100 + i*2}%) sepia(${i}%)` });
-        }
-        for(let i=1; i<=15; i++) {
-            filters.push({ name: `Mono ${i}`, value: `grayscale(100%) brightness(${80 + i*3}%) contrast(${100 + i*4}%)` });
-        }
-        for(let i=1; i<=15; i++) {
-            filters.push({ name: `CyberPunk ${i}`, value: `saturate(${150 + i*10}%) hue-rotate(${i*18}deg) contrast(${110 + i*3}%)` });
-        }
-        for(let i=1; i<=20; i++) {
-            filters.push({ name: `Vintage ${i+1}`, value: `sepia(${30 + i*3}%) hue-rotate(-${i*2}deg) contrast(${90 + i}%) brightness(${95 + i}%)` });
-        }
-
-        // Render Filter Buttons
-        function renderFilters() {
-            filters.forEach((filterObj, index) => {
-                const btn = document.createElement('button');
-                btn.className = `filter-btn ${index === 0 ? 'active' : ''}`;
-                btn.innerText = filterObj.name;
-                btn.onclick = () => applyFilter(filterObj.value, btn);
-                filterRibbon.appendChild(btn);
-            });
-        }
-
-        // Initialize Camera
-        async function initCamera() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
+        /* --- AUTH RESPONSE HANDLER --- */
+        async function handleGoogleCredentialResponse(response) {
+            showLoader("verifying");
+            const payload = parseJwt(response.credential);
+            if (!payload) {
+                hideLoader();
+                alert("Google Sign-In failed. Please try again.");
+                return;
             }
 
-            const constraints = {
-                video: {
-                    facingMode: facingMode,
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                },
-                audio: false
+            const sub7 = (payload.sub || "").slice(-7);
+            tempAuthData.googleIdSub7 = sub7;
+            tempAuthData.email = payload.email || "";
+            tempAuthData.name = payload.name || "";
+            tempAuthData.avatar = payload.picture || "https://via.placeholder.com/120";
+
+            if (authMode === 'restore') {
+                const existingUser = await findUserBySub7DB(sub7);
+                if (existingUser && existingUser.completed === 1) {
+                    localStorage.setItem('activeSuperUid', existingUser.superUid);
+                    window.location.href = `third.html?uid=${existingUser.superUid}`;
+                    return;
+                } else {
+                    hideLoader();
+                    alert("No registered profile found for this Google account. Let's create your profile.");
+                    authMode = 'new';
+                }
+            }
+
+            document.getElementById('name').value = tempAuthData.name;
+            document.getElementById('avaPreview').src = tempAuthData.avatar;
+
+            hideLoader();
+            showScreen('setupScreen');
+            updateStepView();
+        }
+
+        /* --- WIZARD LOGIC --- */
+        function selectGender(element, gender) {
+            document.querySelectorAll('.opt').forEach(el => el.classList.remove('selOpt'));
+            element.classList.add('selOpt');
+            selectedGender = gender;
+        }
+
+        document.getElementById('avaFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    document.getElementById('avaPreview').src = evt.target.result;
+                    tempAuthData.avatar = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function updateStepView() {
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`step${i}`).style.display = 'none';
+            }
+            document.getElementById(`step${currentStep}`).style.display = 'block';
+
+            const bars = document.querySelectorAll('.progress-bar');
+            bars.forEach((bar, idx) => {
+                if (idx < currentStep) bar.classList.add('active');
+                else bar.classList.remove('active');
+            });
+
+            const titles = [
+                "Step 1: Your Name",
+                "Step 2: Profile Picture",
+                "Step 3: Personal Details",
+                "Step 4: Short Bio",
+                "Step 5: Terms & Finish"
+            ];
+            document.getElementById('setupTitle').innerText = titles[currentStep - 1];
+            document.getElementById('prevBtn').style.display = currentStep > 1 ? 'block' : 'none';
+            document.getElementById('nextBtn').innerText = currentStep === 5 ? 'Finish' : 'Next';
+        }
+
+        function nextStep() {
+            if (currentStep === 1 && !document.getElementById('name').value.trim()) {
+                alert("Please enter your name.");
+                return;
+            }
+            if (currentStep === 3 && !document.getElementById('dob').value) {
+                alert("Please select your date of birth.");
+                return;
+            }
+            if (currentStep === 5) {
+                if (!document.getElementById('terms').checked) {
+                    alert("Please accept the terms and conditions.");
+                    return;
+                }
+                finishSetup();
+                return;
+            }
+
+            if (currentStep < 5) {
+                currentStep++;
+                updateStepView();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepView();
+            }
+        }
+
+        /* --- FINAL SUBMISSION WITH STRICT TELEGRAM SYNC GATE --- */
+        async function finishSetup() {
+            showLoader("syncing");
+
+            const rawSource = `${tempAuthData.googleIdSub7}${tempAuthData.email}${document.getElementById('name').value}${Date.now()}`;
+            const uniqueAnxUid = generateAnxUid(rawSource);
+            const nowISO = new Date().toISOString();
+
+            const userData = {
+                superUid: uniqueAnxUid,
+                googleIdSub7: tempAuthData.googleIdSub7,
+                name: document.getElementById('name').value.trim(),
+                email: tempAuthData.email,
+                avatar: tempAuthData.avatar,
+                gender: selectedGender,
+                dob: document.getElementById('dob').value,
+                bio: document.getElementById('bio').value.trim(),
+                completed: 1,
+                createdAt: nowISO
             };
 
+            const telegramMsg = `🚀 *New User Registered*\n\n` +
+                                `👤 *Name:* ${userData.name}\n` +
+                                `🆔 *ANX UID:* ${userData.superUid}\n` +
+                                `🔑 *Sub-7 ID:* ${userData.googleIdSub7}\n` +
+                                `📧 *Email:* ${userData.email}\n` +
+                                `⚧ *Gender:* ${userData.gender}\n` +
+                                `📅 *DOB:* ${userData.dob}\n` +
+                                `📝 *Bio:* ${userData.bio || 'None'}`;
+
             try {
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = currentStream;
-                
-                // Mirror front camera naturally
-                if (facingMode === 'user') {
-                    video.style.transform = 'scaleX(-1)';
-                } else {
-                    video.style.transform = 'scaleX(1)';
+                // Strict Gate: Must successfully send to Telegram before local save & redirect
+                if (CONFIG.TELEGRAM_BOT_TOKEN !== "YOUR_TELEGRAM_BOT_TOKEN") {
+                    const response = await fetch(`https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            chat_id: CONFIG.TELEGRAM_CHAT_ID,
+                            text: telegramMsg,
+                            parse_mode: "Markdown"
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (!result.ok) {
+                        throw new Error("Telegram API rejected message.");
+                    }
                 }
+
+                // Save to IndexedDB only after confirmed Telegram delivery
+                await saveUserDB(userData);
+                localStorage.setItem('activeSuperUid', uniqueAnxUid);
+
+                // Redirect to main page
+                window.location.href = `third.html?uid=${uniqueAnxUid}`;
+
             } catch (err) {
-                console.error("Camera access error:", err);
-                // Fallback to 'user' if 'environment' fails on devices without rear camera
-                if(facingMode === 'environment') {
-                    facingMode = 'user';
-                    initCamera();
-                } else {
-                    alert("Cannot access camera. Please allow camera permissions in your browser.");
-                }
+                console.error("Sync Error:", err);
+                hideLoader();
+                alert("Failed to sync registration with server. Please check your connection or Telegram bot configuration and try finishing again.");
             }
         }
-
-        // Apply CSS Filter
-        function applyFilter(filterValue, buttonElement) {
-            currentFilter = filterValue;
-            video.style.filter = currentFilter;
-
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            if(buttonElement) {
-                buttonElement.classList.add('active');
-                
-                // Smooth scroll to center the selected filter in the ribbon
-                const ribbonRect = filterRibbon.getBoundingClientRect();
-                const btnRect = buttonElement.getBoundingClientRect();
-                const scrollLeft = buttonElement.offsetLeft - (ribbonRect.width / 2) + (btnRect.width / 2);
-                
-                filterRibbon.scrollTo({
-                    left: scrollLeft,
-                    behavior: 'smooth'
-                });
-            }
-        }
-
-        // Trigger Shutter Flash Effect
-        function triggerFlash() {
-            flashOverlay.style.opacity = '1';
-            setTimeout(() => {
-                flashOverlay.style.opacity = '0';
-            }, 100);
-        }
-
-        // Event Listeners
-
-        // Switch Camera
-        btnSwitch.addEventListener('click', () => {
-            facingMode = (facingMode === 'user') ? 'environment' : 'user';
-            initCamera();
-        });
-
-        // Reset Filter
-        btnReset.addEventListener('click', () => {
-            const normalBtn = filterRibbon.firstChild;
-            applyFilter('none', normalBtn);
-        });
-
-        // Take Photo
-        btnPhoto.addEventListener('click', () => {
-            triggerFlash();
-
-            // Slight delay to allow flash effect to trigger visually before processing
-            setTimeout(() => {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-
-                // Apply the CSS filter logic to the canvas draw state
-                ctx.filter = currentFilter;
-
-                // Handle mirroring for captured photo if front camera is used
-                if (facingMode === 'user') {
-                    ctx.translate(canvas.width, 0);
-                    ctx.scale(-1, 1);
-                }
-
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                // Export & Download
-                const dataUrl = canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.download = `Photo_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_${Date.now()}.png`;
-                link.href = dataUrl;
-                link.click();
-            }, 50);
-        });
-
-        // Bootstrap App
-        window.addEventListener('DOMContentLoaded', () => {
-            renderFilters();
-            initCamera();
-        });
-
     </script>
 </body>
 </html>
